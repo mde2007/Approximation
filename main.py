@@ -1,22 +1,28 @@
-import matplotlib.pyplot as plt
-import tkinter as tk
-import numpy as np
 import math
+import tkinter as tk
+
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
 
 def function(x):
     return x * (1 + x) ** (1 / 3)
 
-def tabulate(a = 1, b = 9, n = 8):
+
+def tabulate(a=1, b=9, n=8):
     step = (b - a) / n
     results = []
-    for i in range(n + 1):            # <-- исправлено: цикл по счётчику
+    for i in range(n + 1):
         x = a + i * step
         results.append((x, function(x)))
     return results
 
+
 graphic = tabulate()
 x_values = [point[0] for point in graphic]
 y_values = [point[1] for point in graphic]
+
 
 def mnk(x_values, y_values, m):
     n = len(x_values)
@@ -35,18 +41,16 @@ def mnk(x_values, y_values, m):
     func = f'{coeffs[0][0]:.4f}'
     for i in range(1, len(coeffs)):
         func += f' + {coeffs[i][0]:.4f} * x ^ {i}'
-    print(func)
 
-    global y_apr_value
     y_apr_value = []
-    apr_y = 0
     for x in x_values:
+        apr_y = 0
         for j in range(len(coeffs)):
             apr_y += coeffs[j][0] * x ** j
         y_apr_value.append(apr_y)
-        apr_y = 0
 
-    print(y_apr_value)
+    return y_apr_value, func
+
 
 def lagrange_basis(x_values, i, x):
     p = 1.0
@@ -55,6 +59,7 @@ def lagrange_basis(x_values, i, x):
             p *= (x - x_values[j]) / (x_values[i] - x_values[j])
     return p
 
+
 def lagrange(x_values, y_values, x):
     result = 0.0
     for i in range(len(x_values)):
@@ -62,7 +67,7 @@ def lagrange(x_values, y_values, x):
     return result
 
 
-def exp_aprox(x_values, y_values, N = 11):
+def exp_aprox(x_values, y_values, N=9):
     sumX = 0
     sumY = 0
     sumX2 = 0
@@ -74,24 +79,75 @@ def exp_aprox(x_values, y_values, N = 11):
         sumX2 += x_values[i] * x_values[i]
         sumxY += x_values[i] * Y
 
-    b_exp = (N * sumxY - sumX * sumY) / (N * sumX2 - sumX**2)
-
+    b_exp = (N * sumxY - sumX * sumY) / (N * sumX2 - sumX ** 2)
     A = (sumY - b_exp * sumX) / N
     a_exp = math.exp(A)
 
     return a_exp, b_exp
 
-print(x_values, y_values)
+
+
 lagr_val = [lagrange(x_values, y_values, x) for x in x_values]
-mnk(x_values, y_values, m = 3)
 aex, bex = exp_aprox(x_values, y_values)
-yexp = []
-for x in x_values:
-    yexp.append(aex * math.exp(bex * x))
-plt.plot(x_values, yexp, color='green', linestyle=':', linewidth=2, marker='^', label='Функция экспоненты')
-plt.plot(x_values, y_values, color='red', linestyle='-', linewidth=2, marker='o', label='f(x)')
-# plt.plot(x_values, y_apr_value, color='blue', linestyle='--', linewidth=2, marker='s', label='МНК')
-# plt.plot(x_values, lagr_val, color='green', linestyle=':', linewidth=2, marker='^', label='Лагранж')
-plt.legend()
-plt.grid(True)
-plt.show()
+yexp = [aex * math.exp(bex * x) for x in x_values]
+
+canvas1 = None
+canvas2 = None
+
+
+def draw_first_graph(m):
+    global canvas1
+    if canvas1 is not None:
+        canvas1.get_tk_widget().destroy()
+    y_apr_value, func = mnk(x_values, y_values, m)
+    fig1, ax1 = plt.subplots(figsize=(6, 4))
+    ax1.plot(x_values, y_values,'r-o', linewidth=2, markersize=6, label='f(x)')
+    ax1.plot(x_values, y_apr_value,'b--s', linewidth=2, markersize=6, label=f'МНК (m={m})')
+    ax1.plot(x_values, lagr_val,'g:^', linewidth=2, markersize=6, label='Лагранж')
+    ax1.set_xlabel('x', fontsize=11)
+    ax1.set_ylabel('y', fontsize=11)
+    ax1.set_title('Исходная функция, МНК и Лагранж', fontsize=12)
+    ax1.grid(True, alpha=0.3)
+    ax1.legend(loc='best')
+    canvas1 = FigureCanvasTkAgg(fig1, master=win)
+    canvas1.draw()
+    canvas1.get_tk_widget().place(x=0, y=150, width=580, height=420)
+    func_label.config(text=f'Полином МНК степени {m}:\n{func}')
+
+
+def draw_second_graph():
+    global canvas2
+    fig2, ax2 = plt.subplots(figsize=(6, 4))
+    ax2.plot(x_values, y_values,'r-o', linewidth=2, markersize=6, label='f(x)')
+    ax2.plot(x_values, yexp, 'g:^', linewidth=2, markersize=6, label='Функция экспоненты')
+    ax2.set_xlabel('x', fontsize=11)
+    ax2.set_ylabel('y', fontsize=11)
+    ax2.set_title('Исходная функция и экспоненциальная аппроксимация', fontsize=12)
+    ax2.grid(True, alpha=0.3)
+    ax2.legend(loc='best')
+    canvas2 = FigureCanvasTkAgg(fig2, master=win)
+    canvas2.draw()
+    canvas2.get_tk_widget().place(x=600, y=150, width=580, height=420)
+
+
+def button_function():
+    m = int(ment.get())
+    draw_first_graph(m)
+    draw_second_graph()
+
+
+win = tk.Tk()
+win.geometry('1200x650')
+win.title('Лаба')
+title = tk.Label(win, text='Аппроксимация функции f(x) = x*(1+x)^(1/3)', font=('Arial', 14))
+title.place(x=0, y=0)
+text = tk.Label(win, text='Введите степень аппроксимации m для МНК', font=('Arial', 12))
+text.place(x=0, y=40)
+ment = tk.Entry(win)
+ment.insert(0, '3')
+ment.place(x=0, y=70)
+but = tk.Button(win, text='Построить МНК', command=button_function)
+but.place(x=150, y=68)
+func_label = tk.Label(win, text='', font=('Arial', 10), justify='left')
+func_label.place(x=0, y=100)
+win.mainloop()
