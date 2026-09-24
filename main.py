@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import tkinter as tk
 import numpy as np
+import math
 
 def function(x):
     return x * (1 + x) ** (1 / 3)
@@ -60,12 +61,37 @@ def lagrange(x_values, y_values, x):
         result += y_values[i] * lagrange_basis(x_values, i, x)
     return result
 
+
+def exp_aprox(x_values, y_values, N = 11):
+    sumX = 0
+    sumY = 0
+    sumX2 = 0
+    sumxY = 0
+    for i in range(len(x_values)):
+        Y = math.log(y_values[i])
+        sumX += x_values[i]
+        sumY += Y
+        sumX2 += x_values[i] * x_values[i]
+        sumxY += x_values[i] * Y
+
+    b_exp = (N * sumxY - sumX * sumY) / (N * sumX2 - sumX**2)
+
+    A = (sumY - b_exp * sumX) / N
+    a_exp = math.exp(A)
+
+    return a_exp, b_exp
+
 print(x_values, y_values)
 lagr_val = [lagrange(x_values, y_values, x) for x in x_values]
 mnk(x_values, y_values, m = 3)
+aex, bex = exp_aprox(x_values, y_values)
+yexp = []
+for x in x_values:
+    yexp.append(aex * math.exp(bex * x))
+plt.plot(x_values, yexp, color='green', linestyle=':', linewidth=2, marker='^', label='Функция экспоненты')
 plt.plot(x_values, y_values, color='red', linestyle='-', linewidth=2, marker='o', label='f(x)')
-plt.plot(x_values, y_apr_value, color='blue', linestyle='--', linewidth=2, marker='s', label='МНК')
-plt.plot(x_values, lagr_val, color='green', linestyle=':', linewidth=2, marker='^', label='Лагранж')
+# plt.plot(x_values, y_apr_value, color='blue', linestyle='--', linewidth=2, marker='s', label='МНК')
+# plt.plot(x_values, lagr_val, color='green', linestyle=':', linewidth=2, marker='^', label='Лагранж')
 plt.legend()
 plt.grid(True)
 plt.show()
